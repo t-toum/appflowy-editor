@@ -1,7 +1,7 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
-import 'package:rich_clipboard/rich_clipboard.dart';
+import 'package:super_clipboard/super_clipboard.dart';
 
 class AppFlowyClipboardData {
   const AppFlowyClipboardData({
@@ -27,23 +27,27 @@ class AppFlowyClipboard {
         html = '<html><body>$html</body></html>';
       }
     }
-
-    return RichClipboard.setData(
-      RichClipboardData(
-        text: text,
-        html: html,
-      ),
-    );
+    final clipboard = SystemClipboard.instance;
+    if(clipboard == null){
+      throw UnimplementedError();
+    }
+    final item = DataWriterItem();
+    item.add(Formats.plainText(text ?? ''));
+    item.add(Formats.htmlText(html ?? ""));
+    return await clipboard.write([item]);
   }
 
   static Future<AppFlowyClipboardData> getData() async {
+    final clipboard = SystemClipboard.instance;
+    if(clipboard == null) {
+      throw UnimplementedError();
+    }
     if (_mockData != null) {
       return _mockData!;
     }
-
-    final data = await RichClipboard.getData();
-    final text = data.text;
-    var html = data.html;
+    final reader = await clipboard.read();
+    final text = await reader.readValue(Formats.plainText);
+    var html = await reader.readValue(Formats.htmlText);
 
     // https://github.com/BringingFire/rich_clipboard/issues/13
     // Remove all the fragment symbol in Windows.
